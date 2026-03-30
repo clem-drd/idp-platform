@@ -20,7 +20,7 @@ spec:
         name:
           title: Nom du service
           type: string
-          description: Nom en kebab-case (ex: my-service)
+          description: "Nom en kebab-case ex: my-service"
         description:
           title: Description
           type: string
@@ -39,9 +39,10 @@ spec:
       name: Créer le repo GitHub
       action: publish:github
       input:
-        allowedHosts: [github.com]
+        allowedHosts:
+          - github.com
         description: ${{ parameters.description }}
-        repoUrl: github.com?owner=clem-drd&repo=${{ parameters.name }}
+        repoUrl: "github.com?owner=clem-drd&repo=${{ parameters.name }}"
         defaultBranch: main
 
     - id: register
