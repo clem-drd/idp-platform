@@ -1,0 +1,59 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: new-service
+  title: Créer un nouveau service
+  description: Crée un repo GitHub avec FastAPI + Dockerfile + CI/CD
+  tags:
+    - python
+    - fastapi
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Infos du service
+      required:
+        - name
+        - description
+      properties:
+        name:
+          title: Nom du service
+          type: string
+          description: Nom en kebab-case (ex: my-service)
+        description:
+          title: Description
+          type: string
+
+  steps:
+    - id: fetch
+      name: Fetch template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+
+    - id: publish
+      name: Créer le repo GitHub
+      action: publish:github
+      input:
+        allowedHosts: [github.com]
+        description: ${{ parameters.description }}
+        repoUrl: github.com?owner=clem-drd&repo=${{ parameters.name }}
+        defaultBranch: main
+
+    - id: register
+      name: Ajouter au catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Voir le repo
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Voir dans le catalog
+        url: ${{ steps.register.output.entityRef }}
