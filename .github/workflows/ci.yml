@@ -1,0 +1,75 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: clem-drd/idp-platform/demo-api
+
+jobs:
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+
+      - name: Build & Push
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/demo-api
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  update-manifests:
+    name: Update GitOps Manifests
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout manifests repo
+        uses: actions/checkout@v4
+        with:
+          repository: clem-drd/idp-manifests
+          token: ${{ secrets.MANIFESTS_PAT }}
+          path: manifests
+
+      - name: Update image tag
+        run: |
+          mkdir -p manifests/apps/dev/demo-api
+          cat > manifests/apps/dev/demo-api/values.yaml << YAML
+          image:
+            repository: ghcr.io/clem-drd/idp-platform/demo-api
+            tag: "sha-${{ github.sha }}"
+          YAML
+          cd manifests
+          git config user.email "ci@idp.local"
+          git config user.name "IDP Bot"
+          git add -A
+          git commit -m "chore: update demo-api to sha-${{ github.sha }}" || exit 0
+          git push
