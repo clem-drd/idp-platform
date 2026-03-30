@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: demo-api
+  description: Demo API for the Internal Developer Platform
+  annotations:
+    github.com/project-slug: clem-drd/idp-platform
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - python
+    - fastapi
+    - platform
+spec:
+  type: service
+  lifecycle: development
+  owner: platform-team
+  providesApis:
+    - demo-api
